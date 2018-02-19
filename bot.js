@@ -44,7 +44,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 });
 
                 break;
-
+            
+            case 'hodl':
             case 'hold':
 
                 getPinnedMessages(channelID, function (err, res) {
