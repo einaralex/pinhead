@@ -1,0 +1,11 @@
+{
+  "name": "pinhead",
+  "version": "0.0.2",
+  "description": "Discord bot to pin stuff",
+  "main": "bot.js",
+  "author": "Einar Alexander Eymundsson",
+  "dependencies": {
+    "discord.io": "github:woor/discord.io#gateway_v6",
+    "winston": "^2.4.0"
+  }
+}
