@@ -47,7 +47,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             
             case 'hodl':
             case 'hold':
-
+            
                 getPinnedMessages(channelID, function (err, res) {
                     
                     var foundPinByBot = false;
@@ -67,7 +67,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                                     var msg = "Ég bætti þér í listann"
                                     
                                     //add the user to the message
-                                    editMessage(channelID, res[i].id, editMessage);
+                                    editMessage(channelID, res[i].id, editedMessage);
 
                                     //inform the user
                                     sendMessages(channelID, msg);
