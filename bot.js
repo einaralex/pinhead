@@ -58,7 +58,6 @@ onMessage = (message) => {
             case 'hold':
                 doHodl(message);
                 break;
-
             case 's':
             case 'sodl':
             case 'sold':
@@ -71,11 +70,13 @@ onMessage = (message) => {
             case 'e':
             case 'editinfo':
                 editInfo(message, flag, args)
+                break;
             case 'u':
                 getAllUser(userList)
                 break;
             case 'help':
                 getHelp(message);
+                break;
 
         }
     }
@@ -91,24 +92,34 @@ function getHelp(message){
 function doHodl(message){
 
     const authorTag = `<@${message.author.id}>`
+    let foundPinByBot;
 
     message.channel.fetchPinnedMessages()
-        .then(p => { p.map( msg => {
-            if (msg.author.bot && msg.content.startsWith('HODLERS:') ) {
+        .then(p => {
 
-                if (msg.content.indexOf(authorTag)>0) {
-                    message.reply(`þú ert nú þegar á listanum`)
-                } 
-                else {
-                    message.reply(`eg bætti þér í listann`)
-                    msg.edit(`${msg.content}, ${authorTag}`)
-                }                            
-            }
-            else {
+            foundPinByBot = !!p.find(i=> i.author.id === botID && i.content.startsWith('HODLERS:'))
+
+                p.map( msg => {
+                    if (msg.author.bot && foundPinByBot) {
+                        if (msg.content.indexOf(authorTag)>0) {
+                            message.reply(`þú ert nú þegar á listanum`)
+                        } 
+                        else {
+                            message.reply(`eg bætti þér í listann`)
+                            msg.edit(`${msg.content}, ${authorTag}`)
+                        }                            
+                    }
+                    else if (!foundPinByBot && p.size == 0) {
+                        message.channel.send(`HODLERS: ${authorTag} `)
+                        .then(m => m.pin())
+                         
+                    }                     
+                })
+            if (!foundPinByBot && p.size == 0){
                 message.channel.send(`HODLERS: ${authorTag} `)
-                     .then(m => m.pin())
+                        .then(m => m.pin())
             }
-        })
+            
     })
 }
 
@@ -116,7 +127,7 @@ function doSodl(message){
     const authorTag = `<@${message.author.id}>`
 
     message.channel.fetchPinnedMessages()
-        .then(p => { p.map( msg => {
+        .then(p => { !!p && p.map( msg => {
             if (msg.author.bot && msg.content.startsWith('HODLERS:') ) {
 
                 let names = [];
