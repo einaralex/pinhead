@@ -26,13 +26,6 @@ const botID = '413821115920547840';
 
 let userList = [];
 
-/*bot.on('Ready', async = () => {
-    logger.info('Connected');
-    logger.info(`Logged in as:  ${bot.user.username}, ${bot.user.tag}, id: ${bot.user.id}`);
-        await logger.info('shit')
-};
-});*/
-
 onReady = () => {
     logger.info('Connected');
     logger.info(`Logged in as:  ${bot.user.username}, ${bot.user.tag}, id: ${bot.user.id}`);
@@ -41,7 +34,6 @@ onReady = () => {
 // docs: https://discord.js.org/#/docsr/main/stable/class/Message
 onMessage = (message) => {
 
-    const holdPrefix = ['h', 'hodl', 'hold']
     const msg = message.content;    
     const authorTag = `<@${message.author.id}>`
 
@@ -49,9 +41,12 @@ onMessage = (message) => {
 
         // will accept '$cmd' and '$ cmd'
         const c = msg.toLowerCase().substring(1).split(' ');
-        const command = c[0] === '' ? c[1] : c[0];
 
-        console.log
+        const command = c[0] === '' ? c[1] : c[0];
+        const flag = c[0] === '' ? c[2] : c[1]; 
+        const args = c[0] === '' ? c[3] : c[2]; 
+
+
         switch(command) {
             case 't':
                 message.channel.send(`HODLERS: <@99236910844616404>`)
@@ -62,7 +57,6 @@ onMessage = (message) => {
             case 'hodl':
             case 'hold':
                 doHodl(message);
-                //console.log([...message.channel.fetchPinnedMessages().array()])
                 break;
 
             case 's':
@@ -72,20 +66,26 @@ onMessage = (message) => {
                 break;
             case 'i':
             case 'addinfo':
-                doInfo(message, 'BTC')
+                doInfo(message);
                 break;
             case 'e':
             case 'editinfo':
-                //finna eftir prefix, 
-                //brjóta upp skilaboð, 
-                //velja slot 0,1 eða 2 -  official, twitter eða reddit til að breyta
+                editInfo(message, flag, args)
             case 'u':
                 getAllUser(userList)
                 break;
+            case 'help':
+                getHelp(message);
 
         }
-
     }
+}
+function getHelp(message){
+
+    message.channel.send(` $ | !  h | hodl | hold   - To add user to pin`)
+    message.channel.send(` $ | !  s | sodl | sold   - To remove user from pin`)
+    message.channel.send(` $ | !  i | addinfo       - Adds info to pin by channel name (cryptocurrency abbreviation)`)
+    message.channel.send(` $ | !  e | editinfo n|name / w|website / r|reddit / t|twitter {name/link} - Edits info in pin i.e: $editinfo name shitcoin`)
 }
 
 function doHodl(message){
@@ -136,23 +136,53 @@ function doSodl(message){
     })
 }
 
-function doInfo(message, coin){
+function editInfo(message, flag, args){
+    let coin = message.channel.name
 
-    // Ákveða PREFIX
-    //1:finna nafnið á channelinu
-    //2:leita að reddit, bæta í infoMessage
-    //3:leita að twitter, bæta í
-    //4:-||-     offical website, bæta í
-    //5: send and pin
-    let channelName = message.channel.name;
+    if (!flag || !args){
+        console.log('Ekki valid input')
+    }
+    switch(flag){
+        case 'n':
+        case 'name':
+            flag = 0
+        case 'w':
+        case 'website':
+            flag = 1
+        case 'r':
+        case 'reddit':
+            flag = 2
+        case 't':
+        case 'twitter':
+            flag = 3
+    }
+    message.channel.fetchPinnedMessages()
+        .then(p => { p.map( msg => {
+            if (msg.author.bot && msg.content.startsWith('INFO:') ) {
 
+                let info = msg.content.split(' - ');
+                info[flag] = args
+                msg.edit(info)                     
+            }
+        })
+    })
+}
+
+function doInfo(message){
+
+    let coin = message.channel.name
     let url = 'https://api.coinmarketcap.com/v1/ticker?limit=0'
     request(url, function(error, response, body){
         let info = JSON.parse(body);
 
         let c = info.find(i => i.symbol === coin.toUpperCase())
-       
-        googleSearch(c.name)
+        
+        if(c){
+            googleSearch(c.name)
+        }
+        else {
+            message.channel.send('Finn ekki þetta coin á CMC')
+        }
 
     })
 

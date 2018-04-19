@@ -1,5 +1,5 @@
 {
-  "name": "pinhead_v2",
+  "name": "pinhead",
   "version": "2.0.0",
   "description": "Discord bot to pin stuff",
   "main": "bot.js",
