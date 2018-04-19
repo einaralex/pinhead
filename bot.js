@@ -1,220 +1,204 @@
-var Discord = require('discord.io');
-var logger = require('winston');
-var auth = require('./auth.json');
-// Configure logger settings
+const Discord = require('discord.js');
+const logger = require('winston');
+
+const request = require('request');
+const cheerio = require('cheerio');
+
+const google = require('google')
+
+google.resultsPerPage = 1
+
+
+//ATH: Bot verður að vera með Role sem leyfir Manage Messages
+
+const bot = new Discord.Client({
+    messageCacheMaxSize: 10
+});
+
 logger.remove(logger.transports.Console);
 logger.add(logger.transports.Console, {
     colorize: true
 });
 logger.level = 'debug';
-// Initialize Discord Bot
-var bot = new Discord.Client({
-    token: auth.token,
-    autorun: true
-});
 
-var botID = '413821115920547840';
+const auth = require('./auth.json');
+const botID = '413821115920547840';
 
-bot.on('ready', function (evt) {
+let userList = [];
+
+/*bot.on('Ready', async = () => {
     logger.info('Connected');
-    logger.info('Logged in as: ');
-    logger.info(bot.username + ' - (' + bot.id + ')');
-});
-bot.on('message', function (user, userID, channelID, message, evt) {
-    // Our bot needs to know if it will execute a command
-    // It will listen for messages that will start with `!`
+    logger.info(`Logged in as:  ${bot.user.username}, ${bot.user.tag}, id: ${bot.user.id}`);
+        await logger.info('shit')
+};
+});*/
 
-    //logger.info("user:" + user + " userID:" + userID + " channelID:" + channelID + " message:" + message)
-    if (message.substring(0, 1) == '!') {
+onReady = () => {
+    logger.info('Connected');
+    logger.info(`Logged in as:  ${bot.user.username}, ${bot.user.tag}, id: ${bot.user.id}`);
+};
 
-        // after skipping the inital ! mark, message it split up to arrays by whitespace
-        var args = message.substring(1).split(' ');
+// docs: https://discord.js.org/#/docsr/main/stable/class/Message
+onMessage = (message) => {
 
-        var cmd = args[0];
+    const holdPrefix = ['h', 'hodl', 'hold']
+    const msg = message.content;    
+    const authorTag = `<@${message.author.id}>`
 
-        var testString = "HODLERS: jonni,einaralex,sveittur,halldor";
+    if (msg.substring(0,1) == '$' || msg.substring(0,1) == '!'){
 
-        var pinnedPrefixForHolders = 'HODLERS'
+        // will accept '$cmd' and '$ cmd'
+        const c = msg.toLowerCase().substring(1).split(' ');
+        const command = c[0] === '' ? c[1] : c[0];
 
-        switch (cmd) {
-            
+        console.log
+        switch(command) {
             case 't':
-                sendMessages(channelID, testString, function(err, res) {           
-                    pinMessage(res.channel_id, res.id)    
-                });
-
+                message.channel.send(`HODLERS: <@99236910844616404>`)
+                    .then(m => m.pin())
+                    .catch(console.error);
                 break;
-            
+            case 'h':
             case 'hodl':
             case 'hold':
-            
-                getPinnedMessages(channelID, function (err, res) {
-                    
-                    var foundPinByBot = false;
-                    var alreadyInPin = false;
-
-                        //iterate through all pinned messages 
-                        for (var i = 0; i < res.length; i++) {
-                            
-                            //check if the bot created the message
-                            if (res[i].author.id == botID && isStringInMessage(pinnedPrefixForHolders, res[i].content)) {
-                                foundPinByBot = true;
-                                //check if the user being pinned is already in the message
-                                if (res[i].content.indexOf(user) == -1) {
-
-                                    
-                                    var editedMessage = res[i].content + "," + user
-                                    var msg = "Ég bætti þér í listann"
-                                    
-                                    //add the user to the message
-                                    editMessage(channelID, res[i].id, editedMessage);
-
-                                    //inform the user
-                                    sendMessages(channelID, msg);
-
-                                }
-                                else {
-                                    alreadyInPin = true;
-                                }
-                            }
-                        }
-                        if (!foundPinByBot) {
-                            var msg = pinnedPrefixForHolders + ": " + user;
-
-                            sendMessages(channelID, msg, function(err, res) {
-                                pinMessage(res.channel_id, res.id)  
-
-                            })
-                        }
-                        if (alreadyInPin && foundPinByBot) {
-                            var msg = "Þú ert nú þegar í pinned messages"
-                            sendMessages(channelID, msg);
-                        }
-                    }
-                );
+                doHodl(message);
+                //console.log([...message.channel.fetchPinnedMessages().array()])
                 break;
 
-                case 'sold':
-
-                getPinnedMessages(channelID, function (err, res) {
-                    
-                    var foundPinByBot = false;
-                    var alreadyInPin = false;
-
-                        //iterate through all pinned messages 
-                        for (var i = 0; i < res.length; i++) {
-
-                            var messageContent = res[i].content;
-                            
-                            //check if the bot created the message
-                            if (res[i].author.id == botID && isStringInMessage(pinnedPrefixForHolders, res[i].content)) {
-                                foundPinByBot = true;
-
-                                var indexOfUser = messageContent.indexOf(user);
-                                //check if the user being pinned is already in the message
-                                if (indexOfUser !== -1) {
-
-                                    //Split the message so [0] = 'HODLERS:', [1] = name1,name2,..
-                                    var contentArr  = messageContent.split(' ')
-
-                                    // split the namelist by comma
-                                    var nameArr = contentArr[1].split(',');
-                                    var index = nameArr.indexOf(user);
-
-                                    if (index !== -1) nameArr.splice(index, 1);
-                                    
-                                    var newMessage = contentArr[0] + " " + nameArr.join(',')
-                                    var msg = "Ég tók þig af listanum"
-                                    
-                                    //add the user to the message
-                                    editMessage(channelID, res[i].id, newMessage);
-
-                                    //inform the user
-                                    sendMessages(channelID, msg);
-                                }
-                                else {
-                                    alreadyInPin = true;
-                                }
-                            }
-                        }
-                    
-                        if (alreadyInPin && foundPinByBot) {
-                            var msg = "Þú ert ekki í pinned messages"
-                        }
-                    }
-                );
+            case 's':
+            case 'sodl':
+            case 'sold':
+                doSodl(message);
+                break;
+            case 'i':
+            case 'addinfo':
+                doInfo(message, 'BTC')
+                break;
+            case 'e':
+            case 'editinfo':
+                //finna eftir prefix, 
+                //brjóta upp skilaboð, 
+                //velja slot 0,1 eða 2 -  official, twitter eða reddit til að breyta
+            case 'u':
+                getAllUser(userList)
                 break;
 
-                case '!!help':
-                    sendMessages(channelID, "Commands: !hold !sold");
-                break;
         }
+
     }
-
-});
-
-function sendMessages(ID, message) {
-
-    var callback = arguments[2];
-
-    bot.sendMessage({
-        to: ID,
-        message: message
-    }, function (err, res) {
-        if (err) return shittyErrorHandler(err.statusMessage, err.StatusCode)
-        if (typeof (callback) === 'function') callback(err, res);
-    }
-    );
 }
 
-function editMessage(channelId, messageId, msg) {
+function doHodl(message){
 
-    var callback = arguments[3];
+    const authorTag = `<@${message.author.id}>`
 
-    bot.editMessage({
-        channelID: channelId,
-        messageID: messageId,
-        message: msg
-    }, function (err, res) {
-        if (err) return shittyErrorHandler(err.statusMessage, err.StatusCode)
-        if (typeof (callback) === 'function') callback(err, res);
-    }
-    );
+    message.channel.fetchPinnedMessages()
+        .then(p => { p.map( msg => {
+            if (msg.author.bot && msg.content.startsWith('HODLERS:') ) {
+
+                if (msg.content.indexOf(authorTag)>0) {
+                    message.reply(`þú ert nú þegar á listanum`)
+                } 
+                else {
+                    message.reply(`eg bætti þér í listann`)
+                    msg.edit(`${msg.content}, ${authorTag}`)
+                }                            
+            }
+            else {
+                message.channel.send(`HODLERS: ${authorTag} `)
+                     .then(m => m.pin())
+            }
+        })
+    })
 }
 
-function pinMessage(channelId, messageId) {
+function doSodl(message){
+    const authorTag = `<@${message.author.id}>`
+
+    message.channel.fetchPinnedMessages()
+        .then(p => { p.map( msg => {
+            if (msg.author.bot && msg.content.startsWith('HODLERS:') ) {
+
+                let names = [];
+                msg.content.split(' ')
+                    .filter( (e, i) => i > 0 )
+                    .forEach((m) => names.push(m.replace(',','')
+                ));
+                if (msg.content.indexOf(authorTag)>0){
+                    msg.edit(`HODLERS: ${names.filter(m => m !== authorTag)}`)
+                    message.reply(`ég tók þig af listanum`)
+                }
+                else {
+                    message.reply(`þú ert ekki á listanum`)
+                }           
+            }
+        })
+    })
+}
+
+function doInfo(message, coin){
+
+    // Ákveða PREFIX
+    //1:finna nafnið á channelinu
+    //2:leita að reddit, bæta í infoMessage
+    //3:leita að twitter, bæta í
+    //4:-||-     offical website, bæta í
+    //5: send and pin
+    let channelName = message.channel.name;
+
+    let url = 'https://api.coinmarketcap.com/v1/ticker?limit=0'
+    request(url, function(error, response, body){
+        let info = JSON.parse(body);
+
+        let c = info.find(i => i.symbol === coin.toUpperCase())
+       
+        googleSearch(c.name)
+
+    })
+
+    function googleSearch(coinName){
+
+        let infoMessage = `INFO: ${coinName} - `
+
+        google(`official website ${coinName} cryptocurrency`, function (err, res) {
+            if (res.links[0].link != null)
+            {
+                infoMessage += `${res.links[0].link} - `
+            }
+            google(`reddit ${coinName} cryptocurrency`, function (err, res) {
+                if (res.links[0].link != null)
+                {
+                    infoMessage += `${res.links[0].link} - `
+                }
+                google(`twitter ${coinName} cryptocurrency`, function (err, res) {
+                    if (res.links[0].link != null)
+                    {
+                        infoMessage += `${res.links[0].link}`
     
-    var callback = arguments[2];
-
-    //ATH: Bot verður að vera með Role sem leyfir Manage Messages
-
-    bot.pinMessage({
-        channelID: channelId,
-        messageID: messageId
-    }, function (err, res) {
-        if (err) return shittyErrorHandler(err.statusMessage, err.StatusCode)
-        if (typeof (callback) === 'function') callback(err, res);
-    });
-}
-
-function getPinnedMessages(channelId) {
-    var callback = arguments[1];
-
-    bot.getPinnedMessages({
-        channelID: channelId
-    }, function (err, res) {
-        if (err) return shittyErrorHandler(err.statusMessage, err.StatusCode)
-        if (typeof (callback) === 'function') callback(err, res);
-    });
-}
-
-function isStringInMessage (str, message) {
-    if (message.indexOf(str) == -1){
-        return false
+                    }
+                    message.channel.send(infoMessage)
+                        .then(m => m.pin())
+                        .catch(console.error);
+                })
+            })
+        }) 
     }
-    else return true
 }
 
-function shittyErrorHandler(message, statusCode) {
-    logger.error("ERROR no." + statusCode + ": " + message )
+function getAllUser(userList) {
+
+    bot.users.map(u =>
+        userList.push( {
+            id: u.id,
+            name: u.username,
+            syntax: `${u.username}#${u.discriminator}`,
+            tag: `<@${u.id}>`
+        })
+    )
+    return userList
 }
+
+
+bot.on('ready', onReady);
+bot.on('message', onMessage);
+bot.login(auth.token);
